@@ -1,0 +1,12 @@
+line(32){}
+every(){
+  number().store(:id)
+  read(",")
+  until(",", 3, true)
+  until(",", 1, false).store(:email)
+  
+  write("INSERT INTO accounts (id, email) VALUES (")
+  insert(:id)
+  write(",\"")
+  insert(:email)
+}

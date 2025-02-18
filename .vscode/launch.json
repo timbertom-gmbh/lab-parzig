@@ -1,0 +1,11 @@
+{
+  "configurations": [
+    {
+      "name": "Debug csv convert example",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/zig-out/bin/csv_convert",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
