@@ -41,13 +41,15 @@ pub fn scan(self: *Tokenizer, allocator: std.mem.Allocator) !TokenInstance {
     const reader = self.file.reader();
 
     var has_possible_token: bool = true;
-    var is_escaped: bool = false;
     var c: u32 = 0;
     var read_byte: u8 = 0;
     var peek_byte: u8 = 0;
 
     var buf = try std.ArrayList(u8).initCapacity(allocator, max_length);
     defer buf.deinit();
+
+    var escaped_positions = std.ArrayList(u32).init(allocator);
+    defer escaped_positions.deinit();
 
     //TODO(msp): make ArrayList of possible inexact matches and try to make exact matches if possible
 
@@ -62,8 +64,8 @@ pub fn scan(self: *Tokenizer, allocator: std.mem.Allocator) !TokenInstance {
         // TODO(msp): This does only work if the escaped char is the last in the sequence. So thats bad.
         // discard escape byte and set flag to ignore next byte in match check
         if (read_byte == self.escape_byte) {
-            is_escaped = true;
             read_byte = try reader.readByte();
+            try escaped_positions.append(c);
         }
 
         try buf.append(read_byte);
@@ -83,7 +85,7 @@ pub fn scan(self: *Tokenizer, allocator: std.mem.Allocator) !TokenInstance {
         if (self.required_next_token_id) |token_id| {
             const token_or_null = self.get_token_by_id(token_id);
             if (token_or_null) |token| {
-                const state = token.test_sate(check_slice, peek_byte, is_escaped);
+                const state = token.test_sate(check_slice, peek_byte, escaped_positions.items);
                 if (state == .Match) {
                     if (token.follow_token_idx) |next_token_id| {
                         self.required_next_token_id = next_token_id;
@@ -107,7 +109,7 @@ pub fn scan(self: *Tokenizer, allocator: std.mem.Allocator) !TokenInstance {
                 if (token.is_fragment)
                     continue;
 
-                const state = token.test_sate(check_slice, peek_byte, is_escaped);
+                const state = token.test_sate(check_slice, peek_byte, escaped_positions.items);
                 if (state == .Match) {
                     if (token.follow_token_idx) |next_token_id| {
                         self.required_next_token_id = next_token_id;

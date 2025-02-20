@@ -9,4 +9,5 @@ every(){
   insert(:id)
   write(",\"")
   insert(:email)
+  write("\");")
 }

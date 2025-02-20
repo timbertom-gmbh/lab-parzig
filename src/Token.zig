@@ -22,10 +22,10 @@ pub fn fragment(self: *Token) void {
     self.is_fragment = true;
     return;
 }
-pub fn test_sate(self: Token, buffer: []const u8, peek_byte: u8, is_escaped: bool) TokenState {
+pub fn test_sate(self: Token, buffer: []const u8, peek_byte: u8, escaped_positions: []u32) TokenState {
     if (self.exact) {
         // exact matches can never include escaped chars
-        if (is_escaped) {
+        if (escaped_positions.len > 0) {
             return TokenState.Invalid;
         }
 
@@ -37,20 +37,34 @@ pub fn test_sate(self: Token, buffer: []const u8, peek_byte: u8, is_escaped: boo
         }
         return TokenState.Invalid;
     } else {
-        var buf_check_len = buffer.len;
-        if (is_escaped) {
-            buf_check_len -= 1;
+        var matches: bool = true;
+        // default for negative matches should be
+        if (self.match_reverse) {
+            matches = false;
         }
 
-        var matches: bool = false;
-        outer: for (buffer[0..buf_check_len]) |buf_char| {
+        // check content agains all characters in matching
+        outer: for (0..buffer.len) |buf_index| {
+            // skip escaped positions
+            for (escaped_positions) |skip_index| {
+                if (skip_index == buf_index)
+                    continue :outer;
+            }
+
+            const buf_char = buffer[buf_index];
             for (self.str[0..self.len]) |check_char| {
                 if (buf_char == check_char) {
-                    matches = true;
+                    // for negative matches find matches
+                    if (self.match_reverse)
+                        matches = true;
+
                     continue :outer;
                 }
             }
-            matches = false;
+
+            // for positive matches check for non matches
+            if (!self.match_reverse)
+                matches = false;
         }
 
         if ((self.match_reverse and matches) or (!self.match_reverse and !matches)) {
